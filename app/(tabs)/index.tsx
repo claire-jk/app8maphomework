@@ -17,9 +17,9 @@ import Svg, { Path } from 'react-native-svg';
 
 import mapStyle from "../../scripts/mapStyle.json";
 import stationsData from "../../scripts/stations.json";
-import youbikeData from "../../scripts/YoubikeTaipei.json";
 
 export default function App() {
+
   const [region, setRegion] = useState({
     longitude: 121.544637,
     latitude: 25.024624,
@@ -32,13 +32,15 @@ export default function App() {
   });
 
   const [selectedBike, setSelectedBike] = useState<any | null>(null);
+  const [bikeData, setBikeData] = useState<any[]>([]);
 
   const setRegionAndMarker = (location: any) => {
-    setRegion({
-      ...region,
+    setRegion(prev => ({
+      ...prev,
       longitude: location.coords.longitude,
       latitude: location.coords.latitude,
-    });
+    }));
+
     setMarker({
       coord: {
         longitude: location.coords.longitude,
@@ -62,8 +64,57 @@ export default function App() {
     })();
   }, []);
 
+  const fetchBikeData = async () => {
+    try {
+      const response = await fetch(
+        "https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json"
+      );
+      const data = await response.json();
+      setBikeData(data);
+    } catch (error) {
+      console.log("取得YouBike資料失敗", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchBikeData();
+    const interval = setInterval(fetchBikeData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const rent = selectedBike?.available_rent_bikes ?? 0;
   const ret = selectedBike?.available_return_bikes ?? 0;
+  const total = rent + ret;
+
+  // 🎨 產生圓餅圖 Path
+  const createArc = (
+    startAngle: number,
+    percentage: number,
+    color: string
+  ) => {
+    const angle = percentage * 360;
+    const largeArc = angle > 180 ? 1 : 0;
+    const radius = 50;
+
+    const startX =
+      50 + radius * Math.sin((startAngle * Math.PI) / 180);
+    const startY =
+      50 - radius * Math.cos((startAngle * Math.PI) / 180);
+
+    const endAngle = startAngle + angle;
+
+    const endX =
+      50 + radius * Math.sin((endAngle * Math.PI) / 180);
+    const endY =
+      50 - radius * Math.cos((endAngle * Math.PI) / 180);
+
+    return (
+      <Path
+        d={`M50 50 L${startX} ${startY} A50 50 0 ${largeArc} 1 ${endX} ${endY} Z`}
+        fill={color}
+      />
+    );
+  };
 
   return (
     <SafeAreaProvider>
@@ -74,9 +125,13 @@ export default function App() {
             region={region}
             style={styles.map}
             customMapStyle={mapStyle}
-            onPress={() => setSelectedBike(null)}
+            onStartShouldSetResponder={() => {
+              setSelectedBike(null);
+              return false;
+            }}
           >
-            {youbikeData.slice(0, 100).map((bike) => (
+
+            {bikeData.slice(0, 200).map((bike) => (
               <Marker
                 key={bike.sno}
                 coordinate={{
@@ -104,6 +159,7 @@ export default function App() {
             <Marker coordinate={marker.coord}>
               <FontAwesome name="map-marker" size={34} color="#B12A5B" />
             </Marker>
+
           </MapView>
 
           {selectedBike && (
@@ -125,25 +181,32 @@ export default function App() {
                 更新時間：{selectedBike.mday}
               </Text>
 
-              {/* ✅ 圓餅圖：真正置中 */}
               <Center style={{ marginTop: 24 }}>
                 <Box style={{ alignItems: 'center' }}>
                   <Svg width={160} height={160} viewBox="0 0 100 100">
-                    {/* 左半圓：可還 */}
-                    <Path
-                      d="M50 50 L50 0 A50 50 0 0 0 50 100 Z"
-                      fill="#E57373"
-                    />
 
-                    {/* 右半圓：可借 */}
-                    <Path
-                      d="M50 50 L50 0 A50 50 0 0 1 50 100 Z"
-                      fill="#FDD835"
-                    />
+                    {total === 0 ? (
+                      <Path
+                        d="M50 50 m -50 0 a 50 50 0 1 0 100 0 a 50 50 0 1 0 -100 0"
+                        fill="#ccc"
+                      />
+                    ) : (
+                      <>
+                        {/* 可借：從 0 度開始 */}
+                        {createArc(0, rent / total, "#FDD835")}
+
+                        {/* 可還：從可借結束角度開始 */}
+                        {createArc(
+                          (rent / total) * 360,
+                          ret / total,
+                          "#E57373"
+                        )}
+                      </>
+                    )}
+
                   </Svg>
                 </Box>
 
-                {/* legend：順序修正 */}
                 <Box style={styles.legend}>
                   <Text style={{ color: '#E57373' }}>
                     可還 ({ret})
@@ -156,7 +219,6 @@ export default function App() {
             </Box>
           )}
 
-          {/* ✅ FAB 不再跑版 */}
           <Fab
             size="lg"
             placement="bottom right"
@@ -169,6 +231,7 @@ export default function App() {
               )}
             />
           </Fab>
+
         </Box>
       </GluestackUIProvider>
     </SafeAreaProvider>
@@ -190,7 +253,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#9a9a9ade',
-
   },
 
   sheet: {
