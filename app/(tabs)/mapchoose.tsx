@@ -13,7 +13,7 @@ import stationsData from "../../scripts/stations.json";
 
 export default function MapChoose() {
 
-  const tabBarHeight = useBottomTabBarHeight(); // ⭐ 取得底部 tab 高度
+  const tabBarHeight = useBottomTabBarHeight();
 
   const [region, setRegion] = useState({
     longitude: 121.544637,
@@ -73,7 +73,10 @@ export default function MapChoose() {
 
   useEffect(() => {
     fetchBikeData();
-    const interval = setInterval(fetchBikeData, 30000);
+
+    // ⭐ 改為 30 分鐘更新一次
+    const interval = setInterval(fetchBikeData, 1800000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -93,6 +96,7 @@ export default function MapChoose() {
   const rent = selectedBike?.available_rent_bikes ?? 0;
   const ret = selectedBike?.available_return_bikes ?? 0;
   const total = rent + ret;
+  const safeTotal = total === 0 ? 1 : total;
 
   const createArc = (startAngle: number, percentage: number, color: string) => {
     const angle = percentage * 360;
@@ -152,7 +156,6 @@ export default function MapChoose() {
         </Marker>
       </MapView>
 
-      {/* ⭐ 修正重點：bottom = tabBarHeight */}
       {selectedBike && (
         <Box style={[styles.sheet, { bottom: tabBarHeight }]}>
           <TouchableOpacity
@@ -177,14 +180,20 @@ export default function MapChoose() {
           <Center style={{ marginTop: 24 }}>
             <Svg width={160} height={160} viewBox="0 0 100 100">
               {total === 0 ? (
+                // 兩個都為 0 → 畫灰色整圈
                 <Path
                   d="M50 50 m -50 0 a 50 50 0 1 0 100 0 a 50 50 0 1 0 -100 0"
-                  fill="#ccc"
+                  fill="#ddd"
                 />
               ) : (
                 <>
-                  {createArc(0, rent / total, "#FDD835")}
-                  {createArc((rent / total) * 360, ret / total, "#E57373")}
+                  {/* 可借 */}
+                  {rent > 0 &&
+                    createArc(0, rent / safeTotal, "#FDD835")}
+
+                  {/* 可還 */}
+                  {ret > 0 &&
+                    createArc((rent / safeTotal) * 360, ret / safeTotal, "#E57373")}
                 </>
               )}
             </Svg>
@@ -205,7 +214,7 @@ export default function MapChoose() {
         size="lg"
         placement="bottom right"
         onPress={goToMyLocation}
-        style={[styles.fab, { bottom: tabBarHeight + 20 }]} // ⭐ 避開 tab
+        style={[styles.fab, { bottom: tabBarHeight + 20 }]}
       >
         <FabIcon as={() => <FontAwesome name="crosshairs" size={28} color="white" />} />
       </Fab>
@@ -217,7 +226,7 @@ const styles = StyleSheet.create({
   map: { ...StyleSheet.absoluteFillObject },
 
   font: {
-    fontFamily: 'ZenKurenaido_400Regular', // ⭐ 正確字體名稱
+    fontFamily: 'ZenKurenaido_400Regular',
   },
 
   fab: {

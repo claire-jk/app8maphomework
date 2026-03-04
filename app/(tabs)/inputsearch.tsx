@@ -1,18 +1,18 @@
 // app/components/inputsearch.tsx
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import {
-    Box,
-    Center,
-    FlatList,
-    HStack,
-    Input,
-    InputField,
-    InputIcon,
-    InputSlot,
-    SearchIcon,
-    Spinner,
-    Text,
-    VStack
+  Box,
+  Center,
+  FlatList,
+  HStack,
+  Input,
+  InputField,
+  InputIcon,
+  InputSlot,
+  SearchIcon,
+  Spinner,
+  Text,
+  VStack
 } from '@gluestack-ui/themed';
 import * as Location from 'expo-location';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -60,7 +60,10 @@ export default function InputSearch() {
 
   useEffect(() => {
     fetchBikeData();
-    const interval = setInterval(fetchBikeData, 30000);
+
+    // ⭐ 改為 30 分鐘更新一次
+    const interval = setInterval(fetchBikeData, 1800000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -154,7 +157,6 @@ export default function InputSearch() {
   return (
     <Box style={styles.container}>
 
-      {/* 精緻化搜尋欄 */}
       <Box style={styles.searchWrapper}>
         <Input
           variant="outline"
@@ -218,7 +220,7 @@ const styles = StyleSheet.create({
 
   searchInput: {
     backgroundColor: '#ffffff',
-    height: 44,          // ⭐ 搜尋欄高度縮小
+    height: 44,
     paddingHorizontal: 6,
   },
 
