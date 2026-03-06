@@ -99,13 +99,26 @@ export default function MapChoose() {
   const safeTotal = total === 0 ? 1 : total;
 
   const createArc = (startAngle: number, percentage: number, color: string) => {
+    const radius = 50;
+
+    // ⭐ 如果是100% 直接畫整圓
+    if (percentage >= 0.999) {
+      return (
+        <Path
+          d="M50 50 m -50 0 a 50 50 0 1 0 100 0 a 50 50 0 1 0 -100 0"
+          fill={color}
+        />
+      );
+    }
+
     const angle = percentage * 360;
     const largeArc = angle > 180 ? 1 : 0;
-    const radius = 50;
 
     const startX = 50 + radius * Math.sin((startAngle * Math.PI) / 180);
     const startY = 50 - radius * Math.cos((startAngle * Math.PI) / 180);
+
     const endAngle = startAngle + angle;
+
     const endX = 50 + radius * Math.sin((endAngle * Math.PI) / 180);
     const endY = 50 - radius * Math.cos((endAngle * Math.PI) / 180);
 
